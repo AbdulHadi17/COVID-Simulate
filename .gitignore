@@ -29,9 +29,13 @@ var/
 # Virtual Environment
 venv/
 ENV/
+.venvDAA/   
 
 # IDE specific files
 .idea/
 .vscode/
 *.swp
 *.swo
+
+# Ignore Extra Details
+ExtraDetails/
