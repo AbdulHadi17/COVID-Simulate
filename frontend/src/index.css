@@ -1,0 +1,48 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.controls {
+    background-color: #f5f5f5;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+}
+
+.param-group {
+    margin-bottom: 15px;
+}
+
+.button-group {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.chart {
+    height: 500px;
+    margin-bottom: 30px;
+}
+
+button {
+    padding: 8px 16px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
