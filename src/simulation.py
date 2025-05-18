@@ -17,10 +17,15 @@ class EpidemicSimulation:
     """
     A class to simulate the spread of an infectious disease through a social network.
     """
+
+    @staticmethod
+    def builder():
+        """Create a builder for this class."""
+        return EpidemicSimulationBuilder()
     
-    def __init__(self, network=None, infection_probability=0.3, 
-                 recovery_days=(7, 14), initial_infected_percent=0.01,
-                 mortality_rate=0.02, immunity_period=60):
+    def __init__(self, network, infection_probability, 
+                 recovery_days, initial_infected_percent,
+                 mortality_rate, immunity_period):
         """
         Initialize the simulation with a social network and disease parameters.
         
@@ -39,6 +44,7 @@ class EpidemicSimulation:
         immunity_period : int, optional
             The number of days a recovered individual remains immune.
         """
+        
         self.network = network
         self.infection_probability = infection_probability
         self.recovery_days_range = recovery_days
@@ -64,9 +70,6 @@ class EpidemicSimulation:
         }
         
         self.current_day = 0
-        
-        if self.network is None:
-            self.generate_network()
     
     def generate_network(self, model='barabasi_albert', n=1000, m=5):
         """
@@ -557,14 +560,89 @@ class EpidemicSimulation:
         
         print(f"Data exported for Flourish visualization to {save_path}_*.csv")
 
+
+
+class EpidemicSimulationBuilder:
+    """Builder class for creating configured EpidemicSimulation instances."""
+    
+    def __init__(self):
+        # Default values
+        self._network = None
+        self._infection_probability = 0.3
+        self._recovery_days = (7, 14)
+        self._initial_infected_percent = 0.01
+        self._mortality_rate = 0.02
+        self._immunity_period = 60
+        
+        # Network parameters (if needed)
+        self._network_model = 'barabasi_albert'
+        self._network_size = 1000
+        self._network_param = 5
+    
+    def set_infection_probability(self, probability):
+        """Set the infection probability."""
+        self._infection_probability = probability
+        return self  # Return self for chaining
+    
+    def set_recovery_days(self, min_days, max_days):
+        """Set the recovery days range."""
+        self._recovery_days = (min_days, max_days)
+        return self
+    
+    def set_initial_infected_percent(self, percent):
+        """Set the initial infected percentage."""
+        self._initial_infected_percent = percent
+        return self
+    
+    def set_mortality_rate(self, rate):
+        """Set the mortality rate."""
+        self._mortality_rate = rate
+        return self
+    
+    def set_immunity_period(self, days):
+        """Set the immunity period."""
+        self._immunity_period = days
+        return self
+    
+    def set_network_model(self, model, n=1000, m=5):
+        """Set the network model and parameters."""
+        self._network_model = model
+        self._network_size = n
+        self._network_param = m
+        return self
+    
+    def build(self):
+        """Build and return the configured EpidemicSimulation."""
+        # Create a new simulation instance with our parameters
+        sim = EpidemicSimulation(
+            network=self._network,
+            infection_probability=self._infection_probability,
+            recovery_days=self._recovery_days,
+            initial_infected_percent=self._initial_infected_percent,
+            mortality_rate=self._mortality_rate,
+            immunity_period=self._immunity_period
+        )
+        
+        # Generate the network if one wasn't provided
+        if self._network is None:
+            sim.generate_network(
+                model=self._network_model,
+                n=self._network_size,
+                m=self._network_param
+            )
+        
+        return sim
+
+
 # If this file is run directly, run a demo simulation
 if __name__ == "__main__":
     # Create a simulation with smaller network for testing
-    sim = EpidemicSimulation()
-    sim.generate_network(n=500, m=3)  # Smaller network for faster execution
+    sim = EpidemicSimulation().builder() \
+        .set_network_model('barabasi_albert', n=1000, m=5) \
+        .build()
     
     # Run the simulation
-    sim.run_simulation(days=50)  # Fewer days for testing
+    sim.run_simulation(days=100)  # Fewer days for testing
     
     # Create platform-independent paths for results
     # Use a relative path from the script location
