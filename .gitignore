@@ -40,3 +40,6 @@ ENV/
 
 # Ignore Extra Details
 ExtraDetails/
+
+# ignoring the Node Dependencies
+frontend/node_modules/

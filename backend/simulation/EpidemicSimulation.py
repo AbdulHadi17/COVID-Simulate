@@ -1,7 +1,7 @@
 import networkx as nx
-import matplotlib.pyplot as plt
+# Remove/comment out GUI-related imports
+# import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import random
 import time
 from tqdm import tqdm
@@ -9,11 +9,10 @@ import os
 import pickle
 from matplotlib.animation import FuncAnimation
 
-import EpidemicSimulationBuilder
 
 # Create necessary directories if they don't exist
-os.makedirs("../data", exist_ok=True)
-os.makedirs("../results", exist_ok=True)
+# os.makedirs("../data", exist_ok=True)
+# os.makedirs("../results", exist_ok=True)
 
 class EpidemicSimulation:
     """
@@ -22,7 +21,7 @@ class EpidemicSimulation:
     
     def __init__(self, network, infection_probability, 
                  recovery_days, initial_infected_percent,
-                 mortality_rate, immunity_period):
+                 mortality_rate, immunity_period, interaction_distance=1):
         """
         Initialize the simulation with a social network and disease parameters.
         
@@ -40,6 +39,8 @@ class EpidemicSimulation:
             The probability that an infected individual will die.
         immunity_period : int, optional
             The number of days a recovered individual remains immune.
+        interaction_distance : int, optional
+            The distance within the network at which individuals can interact and potentially spread the infection.
         """
 
         self.network = network
@@ -48,6 +49,7 @@ class EpidemicSimulation:
         self.initial_infected_percent = initial_infected_percent
         self.mortality_rate = mortality_rate
         self.immunity_period = immunity_period
+        self.interaction_distance = interaction_distance  # Add this parameter
         
         # Node states: 0 = susceptible, 1 = infected, 2 = recovered, 3 = deceased
         self.node_states = {}
@@ -72,7 +74,8 @@ class EpidemicSimulation:
     @staticmethod
     def builder():
         """Create a builder for this class."""
-        return EpidemicSimulationBuilder.EpidemicSimulationBuilder()
+        from simulation.EpidemicSimulationBuilder import EpidemicSimulationBuilder
+        return EpidemicSimulationBuilder()  # Remove incorrect class reference
 
 
     def generate_network(self, model='barabasi_albert', n=1000, m=5):
@@ -146,8 +149,11 @@ class EpidemicSimulation:
         self.stats['deceased'].append(deceased)
     
     def simulate_day(self):
-        """Simulate one day of disease spread."""
+        """Simulate one day of infection spread."""
         self.current_day += 1
+        new_infections = []
+        new_recoveries = []
+        new_deaths = []
         
         # Process recoveries and deaths first
         for node, state in list(self.node_states.items()):
@@ -156,48 +162,43 @@ class EpidemicSimulation:
                     # Determine if the person recovers or dies
                     if random.random() < self.mortality_rate:
                         self.node_states[node] = 3  # Deceased
+                        new_deaths.append(node)
                     else:
                         self.node_states[node] = 2  # Recovered
+                        new_recoveries.append(node)
                         self.immunity_until[node] = self.current_day + self.immunity_period
-            
+        
             elif state == 2:  # Recovered
                 # Check if immunity has worn off
                 if node in self.immunity_until and self.immunity_until[node] <= self.current_day:
                     self.node_states[node] = 0  # Back to susceptible
-        
-        # Process new infections
-        new_infections = []
-        
+    
+        # Process infections based on social distance
         for node, state in self.node_states.items():
             if state == 1:  # If node is infected
-                # Interact with neighbors
+                # Get direct neighbors only
                 for neighbor in self.network.neighbors(node):
-                    if self.node_states[neighbor] == 0:  # If neighbor is susceptible
-                        # Calculate infection probability based on node attributes
-                        base_prob = self.infection_probability
+                    if self.node_states.get(neighbor, 0) == 0:  # If neighbor is susceptible
+                        # Get the social distance between them
+                        edge_data = self.network.get_edge_data(node, neighbor) or {}
+                        social_distance = edge_data.get('weight', 1.0)
                         
-                        # Adjust based on neighbor's health and age
-                        health_factor = 1 - self.network.nodes[neighbor]['health']  # Less healthy = more susceptible
-                        age_factor = 1 + max(0, (self.network.nodes[neighbor]['age'] - 50) / 100)  # Older = more susceptible
+                        # Calculate adjusted infection probability
+                        # Higher social distance = lower probability
+                        adjusted_prob = self.infection_probability / (social_distance * social_distance)
                         
-                        # Mobility affects contact intensity
-                        mobility_factor = (self.network.nodes[node]['mobility'] + self.network.nodes[neighbor]['mobility']) / 2
-                        
-                        # Calculate final probability
-                        adjusted_prob = base_prob * health_factor * age_factor * mobility_factor
-                        adjusted_prob = min(adjusted_prob, 0.95)  # Cap at 95%
-                        
-                        # Determine if infection occurs
+                        # Attempt infection with adjusted probability
                         if random.random() < adjusted_prob:
                             new_infections.append(neighbor)
-        
+    
         # Update states for newly infected nodes
         for node in new_infections:
-            self.node_states[node] = 1  # Infected
-            self.infection_day[node] = self.current_day
-            # Determine recovery day
-            recovery_period = random.randint(self.recovery_days_range[0], self.recovery_days_range[1])
-            self.recovery_day[node] = self.current_day + recovery_period
+            if self.node_states.get(node, 0) == 0:  # Only if still susceptible
+                self.node_states[node] = 1  # Infected
+                self.infection_day[node] = self.current_day
+                # Determine recovery day based on the range
+                recovery_period = random.randint(self.recovery_days_range[0], self.recovery_days_range[1])
+                self.recovery_day[node] = self.current_day + recovery_period
         
         self._update_stats()
         return len(new_infections) > 0  # Return True if there were new infections
@@ -216,7 +217,7 @@ class EpidemicSimulation:
         print(f"Starting simulation with {self.stats['infected'][0]} initially infected individuals")
         
         # Run simulation for specified days or until no more infections
-        for day in tqdm(range(days)):
+        for day in range(days):
             active_spread = self.simulate_day()
             
             # Stop if no more infected individuals
@@ -226,7 +227,7 @@ class EpidemicSimulation:
                 
             # Stop if no new infections and we've gone past the longest recovery period
             if not active_spread and day > max(self.recovery_days_range):
-                last_infection_day = max(self.infection_day.values())
+                last_infection_day = max(self.infection_day.values()) if self.infection_day else 0
                 if self.current_day - last_infection_day > max(self.recovery_days_range):
                     print(f"Simulation ended on day {self.current_day}: Disease spread has stopped")
                     break
@@ -488,8 +489,11 @@ class EpidemicSimulation:
         Parameters:
         -----------
         save_path : str
-            Path to save the CSV file for Flourish.
+            Path to save the CSV files for Flourish.
         """
+        import pandas as pd
+        import networkx as nx
+        
         # Calculate layout once for all nodes
         pos = nx.spring_layout(self.network, seed=42)
         
@@ -522,7 +526,7 @@ class EpidemicSimulation:
                 'connections': degree,
                 'size': degree * 2  # Size based on connections
             })
-        
+    
         # Create edges data
         edges_data = []
         for source, target in self.network.edges():
@@ -531,15 +535,15 @@ class EpidemicSimulation:
             
             # Determine if this edge was involved in transmission
             transmission = (source_state == 1 and target_state == 1) or \
-                        (source_state == 1 and target_state == 0) or \
-                        (source_state == 0 and target_state == 1)
+                           (source_state == 1 and target_state == 0) or \
+                           (source_state == 0 and target_state == 1)
             
             edges_data.append({
                 'source': source,
                 'target': target,
                 'transmission': 'Yes' if transmission else 'No'
             })
-        
+    
         # Export nodes data
         nodes_df = pd.DataFrame(nodes_data)
         nodes_df.to_csv(f"{save_path}_nodes.csv", index=False)
@@ -558,10 +562,30 @@ class EpidemicSimulation:
                 'recovered': self.stats['recovered'][day],
                 'deceased': self.stats['deceased'][day]
             })
-        
+    
         time_df = pd.DataFrame(time_series)
         time_df.to_csv(f"{save_path}_timeseries.csv", index=False)
         
         print(f"Data exported for Flourish visualization to {save_path}_*.csv")
+    
+    def _create_network(self):
+        """Create a network with weighted edges to represent interaction frequency."""
+        import networkx as nx
+        import numpy as np
+        
+        if self._network_model == 'barabasi_albert':
+            # Create base network structure
+            self._network = nx.barabasi_albert_graph(self._network_size, self._network_param)
+        # ... other network models ...
+        
+        # Add weights to edges representing social distance/interaction frequency
+        for u, v in self._network.edges():
+            # Calculate a weight based on node properties 
+            # Higher weight = greater social distance = lower interaction frequency
+            weight = np.random.gamma(shape=2.0, scale=self.social_distance_factor)
+            self._network[u][v]['weight'] = weight
+            
+            # Edges with lower weights should be visually closer in the graph
+            self._network[u][v]['length'] = weight * 50  # Visual length for rendering
 
 

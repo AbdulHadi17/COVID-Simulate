@@ -1,37 +1,56 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
-
+// Create an axios instance with default settings
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: 'http://localhost:5000',
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-export const SimulationService = {
-  createSimulation: async (params) => {
-    const response = await api.post('/simulations', params);
-    return response.data;
-  },
+// Add request/response interceptors for better error handling
+api.interceptors.response.use(
+  response => response,
+  error => {
+    console.error('API Error:', error.response?.data || error.message);
+    return Promise.reject(error);
+  }
+);
 
-  getSimulationState: async (simulationId) => {
-    const response = await api.get(`/simulations/${simulationId}`);
-    return response.data;
-  },
+export class SimulationService {
+  static async createSimulation(params) {
+    console.log('Creating simulation with params:', params);
+    try {
+      const response = await api.post('/api/simulations', params);
+      console.log('Simulation created:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Error creating simulation:', error);
+      throw error;
+    }
+  }
 
-  advanceSimulation: async (simulationId, days) => {
-    const response = await api.post(`/simulations/${simulationId}/advance`, { days });
-    return response.data;
-  },
+  static async getSimulationState(simulationId) {
+    // Fix: Added /api prefix
+    const response = await api.get(`/api/simulations/${simulationId}`);
+    return response;
+  }
 
-  getNetworkData: async (simulationId) => {
-    const response = await api.get(`/simulations/${simulationId}/network`);
-    return response.data;
-  },
+  static async advanceSimulation(simulationId, days) {
+    // Fix: Added /api prefix
+    const response = await api.post(`/api/simulations/${simulationId}/advance`, { days });
+    return response;
+  }
 
-  getStatistics: async (simulationId) => {
-    const response = await api.get(`/simulations/${simulationId}/stats`);
-    return response.data;
+  static async getNetworkData(simulationId) {
+    // Fix: Added /api prefix
+    const response = await api.get(`/api/simulations/${simulationId}/network`);
+    return response;
+  }
+
+  static async getStatistics(simulationId) {
+    // Fix: Added /api prefix
+    const response = await api.get(`/api/simulations/${simulationId}/stats`);
+    return response;
   }
 };

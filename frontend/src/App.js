@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import './App.css';
+import React, { useState, useEffect } from 'react';
 import NetworkChart from './components/NetworkChart';
 import StatisticsChart from './components/StatisticsChart';
 import SimulationControls from './components/SimulationControls';
 import StateDisplay from './components/StateDisplay';
 import { SimulationService } from './services/api';
+import './index.css';
 
 function App() {
   const [simulationId, setSimulationId] = useState(null);
@@ -15,12 +15,14 @@ function App() {
   
   const [networkParams, setNetworkParams] = useState({
     network_model: 'barabasi_albert',
-    network_size: 1000,
+    network_size: 500,
     network_connections: 5,
     infection_probability: 0.3,
+    recovery_days: [7, 14],
     initial_infected_percent: 0.01,
     mortality_rate: 0.02,
-    immunity_period: 60
+    immunity_period: 60,
+    interaction_distance: 1
   });
 
   // Handle parameter changes
@@ -38,29 +40,60 @@ function App() {
 
   // Create a new simulation
   const createSimulation = async () => {
-    setLoading(true);
     try {
-      const result = await SimulationService.createSimulation(networkParams);
-      setSimulationId(result.simulation_id);
-      await updateSimulationData(result.simulation_id);
+      setLoading(true);
+      
+      // Make the API call to create the simulation
+      const response = await SimulationService.createSimulation(networkParams);
+      
+      // Debug logs to verify the response
+      console.log("Create simulation response:", response);
+      console.log("Simulation ID:", response.data.simulation_id);
+      
+      // Store the simulation ID
+      const newSimId = response.data.simulation_id;
+      setSimulationId(newSimId);
+      
+      // Get initial state
+      const stateResponse = await SimulationService.getSimulationState(newSimId);
+      setSimulationState(stateResponse.data);
+      
+      // Get network data
+      const networkResponse = await SimulationService.getNetworkData(newSimId);
+      setNetworkData(networkResponse.data);
+      
+      // Get statistics
+      const statsResponse = await SimulationService.getStatistics(newSimId);
+      setStatisticsData(statsResponse.data);
+      
+      setLoading(false);
     } catch (error) {
-      console.error('Error creating simulation:', error);
-    } finally {
+      console.error("Error creating simulation:", error);
       setLoading(false);
     }
   };
 
   // Advance the simulation
-  const advanceSimulation = async (days) => {
-    if (!simulationId) return;
-    
-    setLoading(true);
+  const advanceSimulation = async (days = 1) => {
     try {
+      setLoading(true);
       await SimulationService.advanceSimulation(simulationId, days);
-      await updateSimulationData(simulationId);
+      
+      // Fetch updated simulation state
+      const stateResponse = await SimulationService.getSimulationState(simulationId);
+      setSimulationState(stateResponse.data);
+      
+      // Fetch updated network data - THIS IS THE KEY PART
+      const networkResponse = await SimulationService.getNetworkData(simulationId);
+      setNetworkData(networkResponse.data);
+      
+      // Fetch updated statistics
+      const statsResponse = await SimulationService.getStatistics(simulationId);
+      setStatisticsData(statsResponse.data);
+      
+      setLoading(false);
     } catch (error) {
-      console.error('Error advancing simulation:', error);
-    } finally {
+      console.error("Error advancing simulation:", error);
       setLoading(false);
     }
   };
@@ -90,6 +123,7 @@ function App() {
     setStatisticsData({ days: [], susceptible: [], infected: [], recovered: [], deceased: [] });
   };
 
+  // Make sure App.js returns its UI
   return (
     <div className="container">
       <header>
@@ -107,11 +141,43 @@ function App() {
       />
 
       <StateDisplay simulationState={simulationState} />
-
-      <div className="visualization">
-        <NetworkChart networkData={networkData} />
-        <StatisticsChart statisticsData={statisticsData} />
-      </div>
+      
+      {simulationId ? (
+        <div className="visualization-container">
+          {/* Network visualization card */}
+          <div className="visualization-card">
+            <h3 className="visualization-title">Disease Spread Network</h3>
+            <div className="network-container">
+              <NetworkChart networkData={networkData} networkParams={networkParams} />
+            </div>
+          </div>
+          
+          {/* Chart card - completely separate from network card */}
+          <div className="visualization-card">
+            <h3 className="visualization-title">Disease Progression</h3>
+            <div className="chart-container">
+              <StatisticsChart statisticsData={statisticsData} />
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Your welcome content
+        <div className="welcome-content">
+          <h2>Welcome to COVID-19 Network Simulator</h2>
+          <p>This application allows you to simulate how COVID-19 spreads through a network of people.</p>
+          <p>Use the controls above to configure your simulation parameters and click "Create Simulation" to start.</p>
+          
+          <div className="features">
+            <h3>Features:</h3>
+            <ul>
+              <li>Realistic network modeling with multiple topology options</li>
+              <li>Visual representation of disease spread</li>
+              <li>Statistical tracking of susceptible, infected, recovered, and deceased</li>
+              <li>Day-by-day simulation control</li>
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

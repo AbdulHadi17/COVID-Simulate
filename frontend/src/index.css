@@ -1,48 +1,444 @@
+/* Base styles */
+:root {
+  --primary-color: #3498db;
+  --primary-hover: #2980b9;
+  --danger-color: #e74c3c;
+  --success-color: #2ecc71;
+  --warning-color: #f39c12;
+  --light-bg: #f8f9fa;
+  --dark-bg: #343a40;
+  --border-color: #dee2e6;
+  --text-color: #495057;
+  --text-muted: #6c757d;
+}
+
 body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: var(--text-color);
+  background-color: #f0f2f5;
+  margin: 0;
+  padding: 0;
 }
 
+/* Container */
 .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
+/* Header */
 header {
-    text-align: center;
-    margin-bottom: 30px;
+  background-color: var(--dark-bg);
+  color: white;
+  padding: 1rem;
+  margin-bottom: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  text-align: center;
 }
 
-.controls {
-    background-color: #f5f5f5;
-    padding: 20px;
-    margin-bottom: 20px;
-    border-radius: 5px;
+header h1 {
+  margin: 0;
+  font-weight: 600;
+  font-size: 2rem;
 }
 
-.param-group {
-    margin-bottom: 15px;
+/* Cards & Sections */
+.card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 20px;
+  margin-bottom: 1.5rem;
 }
 
-.button-group {
-    margin-top: 20px;
-    text-align: center;
+.section-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--dark-bg);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.chart {
-    height: 500px;
-    margin-bottom: 30px;
+.section-title svg {
+  color: var(--primary-color);
 }
 
+/* Buttons */
 button {
-    padding: 8px 16px;
-    margin-right: 10px;
-    cursor: pointer;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+button:hover {
+  background-color: var(--primary-hover);
+}
+
+button:active {
+  transform: translateY(1px);
 }
 
 button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  background-color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+button.danger {
+  background-color: var(--danger-color);
+}
+
+button.success {
+  background-color: var(--success-color);
+}
+
+button.warning {
+  background-color: var(--warning-color);
+}
+
+/* Form Controls */
+.form-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.param-group {
+  margin-bottom: 15px;
+  position: relative;
+}
+
+.param-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.param-group input[type="range"] {
+  width: 100%;
+  margin-top: 5px;
+}
+
+.value-display {
+  display: inline-block;
+  margin-left: 8px;
+  font-weight: bold;
+  color: var(--primary-color);
+  min-width: 24px;
+  text-align: center;
+}
+
+small {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Tooltips */
+.tooltip-wrapper {
+  position: relative;
+}
+
+.tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  padding: 12px;
+  width: 250px;
+  z-index: 100;
+  display: none;
+  border: 1px solid var(--border-color);
+}
+
+.tooltip-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: var(--primary-color);
+}
+
+.tooltip-content {
+  font-size: 0.9rem;
+}
+
+.tooltip-content ul {
+  padding-left: 20px;
+  margin: 5px 0;
+}
+
+.tooltip-wrapper:hover .tooltip {
+  display: block;
+}
+
+/* State Display */
+.current-state {
+  background-color: white;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.state-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+/* Chart Controls */
+.chart-controls {
+  background-color: white;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  border: 1px solid var(--border-color);
+}
+
+.view-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.view-buttons button {
+  background-color: #f0f0f0;
+  color: var(--text-color);
+}
+
+.view-buttons button.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.info-text {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+/* Chart container */
+.chart {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  background: white;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 20px;
+}
+
+/* Visualization container */
+.visualization {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 992px) {
+  .visualization {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* New Separate Box Layout */
+.visualization-container {
+  display: flex;
+  flex-direction: column;
+  gap: 30px; /* Increased gap between cards */
+  margin-bottom: 30px;
+  position: relative; /* Create positioning context */
+  height: auto;
+  overflow: visible;
+}
+
+.visualization-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  width: 100%;
+  margin-bottom: 30px; /* Reduced from 30px */
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: fit-content;
+}
+
+.visualization-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  padding: 15px 20px;
+  margin: 0;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid var(--border-color);
+  z-index: 10; /* Ensure title stays above chart */
+}
+
+.network-container {
+  height: 600px; /* Slightly reduced height */
+  padding: 15px;
+  position: relative; /* Create positioning context */
+  flex: 1;
+}
+
+.chart-container {
+  height: 400px;
+  padding: 15px 15px 30px 15px;
+  position: relative; /* Create positioning context */
+  flex: none;
+  max-height: 400px;
+  overflow: hidden;
+}
+
+/* Control Highcharts containers */
+.highcharts-container, 
+.highcharts-root {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Add special rule just for the chart container */
+.chart-container .highcharts-container {
+  height: 370px !important; /* Slightly less than container to prevent overflow */
+}
+
+/* Remove unnecessary stacked visualization classes */
+.visualization-stacked {
+  display: none; /* Hide this unused class */
+}
+
+/* Welcome content */
+.welcome-content {
+  text-align: center;
+  padding: 40px 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.welcome-content h2 {
+  color: var(--primary-color);
+  margin-bottom: 20px;
+}
+
+.features {
+  margin-top: 30px;
+  text-align: left;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+/* Loading spinner */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  color: var(--primary-color);
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Add this class to ensure the network graph appears properly */
+.highcharts-container, 
+.highcharts-root {
+  overflow: visible !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* Add these styles for the social distance legend */
+
+.social-distance-legend {
+  padding: 10px 15px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  margin-top: 15px;
+  border: 1px solid var(--border-color);
+}
+
+.social-distance-legend h4 {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  color: var(--text-color);
+}
+
+.legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-item .line {
+  width: 30px;
+  height: 2px;
+  background: #999;
+}
+
+.legend-item .line.thick {
+  height: 3px;
+  opacity: 0.8;
+}
+
+.legend-item .line.medium {
+  height: 2px;
+  opacity: 0.5;
+}
+
+.legend-item .line.thin {
+  height: 1px;
+  opacity: 0.3;
+}
+
+.legend-item span {
+  font-size: 0.8rem;
 }
