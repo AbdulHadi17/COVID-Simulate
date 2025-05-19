@@ -95,9 +95,25 @@ function NetworkChart({ networkData, networkParams }) {
       return { nodes: [], edges: [] };
     }
     
+    // Create a Set of valid node IDs for faster lookups
+    const validNodeIds = new Set(networkData.nodes.map(node => 
+      node.id !== undefined ? node.id.toString() : null
+    ).filter(Boolean));
+    
+    let nodesToDisplay, edgesToDisplay;
+    
     switch (viewMode) {
       case 'full':
-        return networkData;
+        nodesToDisplay = networkData.nodes;
+        
+        // Filter out edges with invalid node references
+        edgesToDisplay = networkData.edges.filter(edge => 
+          edge && edge.source && edge.target &&
+          validNodeIds.has(edge.source.toString()) && 
+          validNodeIds.has(edge.target.toString())
+        );
+        
+        return { nodes: nodesToDisplay, edges: edgesToDisplay };
         
       case 'zoom':
         if (!focusedNode) return { nodes: [], edges: [] };
@@ -105,7 +121,10 @@ function NetworkChart({ networkData, networkParams }) {
         const nodesInZoom = getNodesWithinVisualDistance(focusedNode, zoomLevel);
         const zoomedNodes = networkData.nodes.filter(node => nodesInZoom.has(node.id));
         const zoomedEdges = networkData.edges.filter(
-          edge => nodesInZoom.has(edge.source) && nodesInZoom.has(edge.target)
+          edge => nodesInZoom.has(edge.source) && 
+                 nodesInZoom.has(edge.target) &&
+                 validNodeIds.has(edge.source.toString()) && 
+                 validNodeIds.has(edge.target.toString())
         );
         
         return { nodes: zoomedNodes, edges: zoomedEdges };
@@ -123,7 +142,10 @@ function NetworkChart({ networkData, networkParams }) {
         const sampledNodeIds = new Set(sampledNodes.map(node => node.id));
         
         const sampledEdges = networkData.edges.filter(
-          edge => sampledNodeIds.has(edge.source) && sampledNodeIds.has(edge.target)
+          edge => sampledNodeIds.has(edge.source) && 
+                 sampledNodeIds.has(edge.target) &&
+                 validNodeIds.has(edge.source.toString()) && 
+                 validNodeIds.has(edge.target.toString())
         );
         
         return { nodes: sampledNodes, edges: sampledEdges };
@@ -171,7 +193,94 @@ function NetworkChart({ networkData, networkParams }) {
   const options = {
     chart: {
       type: 'networkgraph',
-      height: '100%'
+      height: '100%',
+      // Add margins to ensure the visualization stays within bounds
+      margin: [50, 50, 50, 50],
+      events: {
+        load: function() {
+          try {
+            // Safety checks for series and nodes
+            const chart = this;
+            
+            if (!chart || !chart.series) {
+              console.warn('Chart or series is undefined');
+              return;
+            }
+            
+            if (chart.series.length === 0) {
+              console.warn('No series available in chart');
+              return;
+            }
+            
+            if (!chart.series[0]) {
+              console.warn('First series is undefined');
+              return;
+            }
+            
+            setTimeout(function() {
+              try {
+                // Double-check after timeout 
+                if (!chart || !chart.series || !chart.series[0]) {
+                  console.warn('Chart series not available after delay');
+                  return;
+                }
+                
+                if (!chart.series[0].nodes) {
+                  console.warn('Nodes collection is undefined');
+                  return;
+                }
+                
+                // Check if nodes are clustered
+                let sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0, count = 0;
+                
+                chart.series[0].nodes.forEach(function(node) {
+                  if (!node) return; // Skip undefined nodes
+                  
+                  if (typeof node.plotX === 'number' && typeof node.plotY === 'number') {
+                    sumX += node.plotX;
+                    sumY += node.plotY;
+                    sumX2 += node.plotX * node.plotX;
+                    sumY2 += node.plotY * node.plotY;
+                    count++;
+                  }
+                });
+                
+                if (count > 0) {
+                  const avgX = sumX / count;
+                  const avgY = sumY / count;
+                  const stdX = Math.sqrt(sumX2/count - avgX*avgX);
+                  const stdY = Math.sqrt(sumY2/count - avgY*avgY);
+                  
+                  // If standard deviation is low, nodes are clustered
+                  if (stdX < 50 || stdY < 50) {
+                    const width = chart.plotWidth || 600;
+                    const height = chart.plotHeight || 400;
+                    
+                    chart.series[0].nodes.forEach(function(node, i) {
+                      if (!node) return; // Skip undefined nodes
+                      
+                      const total = chart.series[0].nodes.length || 1;
+                      const phi = (1 + Math.sqrt(5)) / 2;
+                      const theta = 2 * Math.PI * i / phi;
+                      const maxRadius = Math.min(width, height) * 0.4;
+                      const radius = maxRadius * Math.sqrt(i / total);
+                      
+                      node.plotX = (width/2) + radius * Math.cos(theta);
+                      node.plotY = (height/2) + radius * Math.sin(theta);
+                    });
+                    
+                    chart.redraw();
+                  }
+                }
+              } catch (error) {
+                console.error('Error in node distribution:', error);
+              }
+            }, 800);
+          } catch (error) {
+            console.error('Error in chart load event:', error);
+          }
+        }
+      }
     },
     title: {
       text: null
@@ -181,23 +290,37 @@ function NetworkChart({ networkData, networkParams }) {
         draggable: true,
         layoutAlgorithm: {
           enableSimulation: true,
-          initialPositions: 'random', // Start from random positions
-          initialPositionRadius: 200, // Wider starting area
-          integration: 'euler', // Change to euler integration for better spread
-          gravitationalConstant: 0.25, // Reduced gravitational pull
-          linkLength: function(link) {
-            // Get the social distance from the link data
-            const weight = link.options.weight || 1;
-            // Scale social distance to reasonable visual length
-            return 50 + (weight * 20); // Increased base length
-          },
-          // Add stronger repulsive force between nodes
+          initialPositions: 'circle', // Start with circle instead of random
+          initialPositionRadius: Math.min(600, Math.max(300, window.innerWidth * 0.25)), // Responsive radius
+          
+          // Use verlet for better distribution
+          integration: 'verlet',
+          
+          // Lower gravitational constant reduces clustering
+          gravitationalConstant: 0.1,
+          
+          // Adjust link length for better spacing
+          linkLength: 100,
+          
+          // Stronger repulsive force pushes nodes apart
           repulsiveForce: function(d, k) {
-            return k * k / Math.max(0.1, d); // Stronger repulsion at short distances
+            return k * k / Math.max(.1, d * 100);
           },
-          friction: 0.75, // Reduced friction to allow more movement
-          maxSpeed: 10, // Allow faster node movement
-          maxIterations: 800 // More iterations for better layout
+          
+          // More balanced friction lets nodes move to proper positions
+          friction: 0.85,
+          
+          // More reasonable max speed prevents "flying" nodes
+          maxSpeed: 10,
+          
+          // Increase iterations for better layout
+          maxIterations: 2000,
+          
+          // No approximation for accurate positioning
+          approximation: 'none',
+          
+          // Add a cooling factor to make layout more stable
+          cooling: 0.85
         }
       }
     },
@@ -206,42 +329,37 @@ function NetworkChart({ networkData, networkParams }) {
       dataLabels: {
         enabled: false
       },
-      // Map nodes with their state colors
-      nodes: displayData.nodes?.map(node => ({
-        id: node.id?.toString(),
-        state: node.state,
-        color: node.state === 0 ? 'blue' : 
-               node.state === 1 ? 'red' : 
-               node.state === 2 ? 'green' : 'black',
-        socialDistance: node.socialDistance || 1
-      })) || [],
-      // Add social distance information to links
-      link: {
-        width: function(link) {
-          // Calculate link width inversely proportional to social distance
-          // Closer contacts (lower social distance) get thicker lines
-          const weight = link.fromNode.options.socialDistance || 
-                        link.toNode.options.socialDistance || 1;
-          return Math.max(1, 3 - weight/2);
-        },
-        color: function(link) {
-          // Color links based on social distance
-          const weight = link.fromNode.options.socialDistance || 
-                        link.toNode.options.socialDistance || 1;
-          // Close contacts (low distance) are darker
-          return Highcharts.color('#999999')
-                  .setOpacity(Math.max(0.2, 0.8 - weight/4))
-                  .get();
-        }
-      },
-      // Format data with social distance
-      data: displayData.edges?.map(edge => {
-        return {
-          from: edge.source?.toString(),
-          to: edge.target?.toString(),
-          weight: edge.weight || 1 // Include weight from backend
-        };
-      }) || []
+      // Safer node mapping
+      nodes: Array.isArray(displayData.nodes) 
+        ? displayData.nodes.map((node, index) => {
+            if (!node) return { id: `node-${index}` }; // Use index for consistency
+            
+            return {
+              id: node.id !== undefined ? node.id.toString() : `node-${index}`,
+              state: node.state !== undefined ? node.state : 0,
+              color: node.state === 0 ? 'blue' : 
+                     node.state === 1 ? 'red' : 
+                     node.state === 2 ? 'green' : 
+                     node.state === 3 ? 'gray' : 'blue',
+              socialDistance: node.socialDistance !== undefined ? node.socialDistance : 1,
+              // Other properties you're already setting...
+              marker: {
+                radius: 5
+              }
+            };
+          }) 
+        : [],
+      // Safer data mapping
+      data: Array.isArray(displayData.edges)
+        ? displayData.edges.map(edge => {
+            if (!edge) return {};
+            return {
+              from: edge.source ? edge.source.toString() : '',
+              to: edge.target ? edge.target.toString() : '',
+              weight: edge.weight || 1
+            };
+          }) 
+        : []
     }],
     tooltip: {
       enabled: true,
@@ -297,7 +415,7 @@ function NetworkChart({ networkData, networkParams }) {
             state: nodeData.state,
             connections: nodeData.connections || 0,
             // Include these properties to avoid undefined errors
-            selected: node.selected || false,
+            selected: nodeData.selected || false,
             visible: true
           }, false);
         }
@@ -394,8 +512,49 @@ function NetworkChart({ networkData, networkParams }) {
             Show Infection Range
           </button>
         )}
+
+        {/* Add a button to redistribute nodes */}
+        <button 
+          onClick={() => {
+            if (chartRef.current && chartRef.current.series && chartRef.current.series[0] && chartRef.current.series[0].nodes) {
+              const chart = chartRef.current;
+              const width = chart.plotWidth || 600;
+              const height = chart.plotHeight || 400;
+              
+              try {
+                chart.series[0].nodes.forEach(function(node, i) {
+                  if (!node) return;
+                  
+                  const total = chart.series[0].nodes.length || 1;
+                  const theta = i * 2.39996; // Golden angle
+                  const radius = Math.min(width, height) * 0.35 * Math.sqrt(i / total);
+                  
+                  node.plotX = (width/2) + radius * Math.cos(theta);
+                  node.plotY = (height/2) + radius * Math.sin(theta);
+                });
+                
+                chart.redraw();
+              } catch (err) {
+                console.error('Error spreading nodes:', err);
+              }
+            } else {
+              console.warn('Chart reference not available');
+            }
+          }}
+        >
+          Spread Nodes
+        </button>
       </div>
-      <HighchartsReact highcharts={Highcharts} options={options} />
+      <HighchartsReact 
+        highcharts={Highcharts} 
+        options={options}
+        callback={chart => {
+          // Save reference for later use
+          if (chartRef.current !== chart) {
+            chartRef.current = chart;
+          }
+        }}
+      />
       
       {/* Add a legend component under the chart */}
       <div className="social-distance-legend">
