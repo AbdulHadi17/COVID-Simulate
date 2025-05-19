@@ -84,53 +84,50 @@ class SimulationManager:
             "deceased": sum(1 for state in sim.node_states.values() if state == 3)
         }
     
-    def get_network_data(self, sim_id):
-        """Get network data with weighted edges for visualization."""
-        if sim_id not in self.simulations:
-            return {"error": "Simulation not found"}
+    def get_network_data(self, simulation_id):
+        """Get network structure with node states for visualization."""
+        # Fix: Use direct dictionary access instead of non-existent get_simulation method
+        if simulation_id not in self.simulations:
+            return {"nodes": [], "edges": []}
         
-        sim = self.simulations[sim_id]
+        simulation = self.simulations[simulation_id]
+        network = simulation.network
+        states = simulation.node_states
+        
+        # Use more aggressive spring layout for better node distribution
         import networkx as nx
         
-        # Use stronger repulsion for layout calculation
+        # Generate positions with stronger repulsion
         pos = nx.spring_layout(
-            sim.network, 
-            k=2.0,         # Increase repulsion strength (default is 0.1)
+            network, 
+            k=2.0,         # Stronger repulsion
             iterations=100, # More iterations for better layout
-            seed=42        # Fixed seed for reproducibility
+            seed=42        # Consistent results
         )
         
-        nodes = []
-        for node in sim.network.nodes():
-            state = sim.node_states.get(node, 0)
-            x, y = pos[node]
-            
-            # Scale positions up for better visualization
-            nodes.append({
-                "id": node,
-                "state": state,
-                "x": float(x * 1000),
-                "y": float(y * 1000),
-                "connections": sim.network.degree(node)
-            })
+        # Create nodes list with states and positions
+        nodes = [
+            {
+                "id": node_id,
+                "state": states.get(node_id, 0),
+                "connections": len(list(network.neighbors(node_id))),
+                "x": float(pos[node_id][0] * 1000), # Scale positions up
+                "y": float(pos[node_id][1] * 1000)  # for better visibility
+            }
+            for node_id in network.nodes()
+        ]
         
-        edges = []
-        for u, v in sim.network.edges():
-            # Include edge weight/length for frontend
-            weight = sim.network[u][v].get('weight', 1.0)
-            length = weight * 50  # Convert weight to visual length
-            
-            edges.append({
+        # Create edges list with weights
+        edges = [
+            {
                 "source": u,
                 "target": v,
-                "weight": float(weight),
-                "length": float(length)
-            })
+                "weight": network[u][v].get('weight', 1.0)
+            }
+            for u, v in network.edges()
+        ]
         
-        return {
-            "nodes": nodes,
-            "edges": edges
-        }
+        return {"nodes": nodes, "edges": edges}
     
     def get_statistics(self, sim_id):
         """Get statistics data for charts."""

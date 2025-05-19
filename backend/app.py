@@ -8,9 +8,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Initialize Flask application
 app = Flask(__name__)
-
-# Enable CORS for all routes
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})  # This enables CORS for all /api routes
 
 # Import and setup routes
 from api.routes import setup_routes

@@ -300,19 +300,24 @@ small {
 }
 
 .network-container {
-  height: 600px; /* Slightly reduced height */
+  height: 600px; /* Was previously 600px, but making sure it's sufficient */
   padding: 15px;
-  position: relative; /* Create positioning context */
+  position: relative;
   flex: 1;
+  overflow: visible; /* Important: allow content to exceed bounds */
+  border: none;      /* Remove any potential border issues */
+  margin: 0;         /* Remove any margins that could cause positioning issues */
 }
 
 .chart-container {
   height: 400px;
-  padding: 15px 15px 30px 15px;
-  position: relative; /* Create positioning context */
+  padding: 0px 15px 40px 15px; /* Reduce bottom padding */
+  position: relative;
   flex: none;
   max-height: 400px;
-  overflow: hidden;
+  overflow: hidden !important; /* Force hidden overflow */
+  display: flex;
+  flex-direction: column;
 }
 
 /* Control Highcharts containers */
@@ -441,4 +446,50 @@ small {
 
 .legend-item span {
   font-size: 0.8rem;
+}
+
+/* Replace these duplicated/conflicting rules (around lines 380-401) */
+
+/* DELETE these conflicting rules */
+/* This rule is duplicated below with different settings */
+.highcharts-container, 
+.highcharts-root {
+  overflow: visible !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* KEEP ONLY these specialized rules */
+.network-container .highcharts-container,
+.network-container .highcharts-root {
+  width: 100% !important;
+  height: 100% !important;
+  /* Allow network nodes to be visible beyond bounds */
+  overflow: visible !important;
+}
+
+.chart-container .highcharts-container,
+.chart-container .highcharts-root {
+  width: 100% !important;
+  height: 370px !important; /* Set explicit height */
+  overflow: hidden !important;
+  max-height: 370px !important;
+}
+
+/* Add a specific class for the disease progression visualization */
+.visualization-card.disease-progression {
+  max-height: 500px; /* Limit overall height */
+  overflow: hidden;
+}
+
+/* Ensure the parent container has proper constraints */
+.visualization-container {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  margin-bottom: 30px;
+  position: relative;
+  height: auto;
+  overflow: visible;
+  border-bottom: 1px solid transparent; /* Add invisible border to contain margins */
 }
