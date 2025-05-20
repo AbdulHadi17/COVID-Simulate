@@ -47,11 +47,6 @@ class EpidemicSimulationBuilder:
         self._network_param = m
         return self
     
-    def set_interaction_distance(self, distance):
-        """Set the distance over which infection can spread."""
-        self.interaction_distance = distance
-        return self
-    
     def build(self):
         """Build and return the configured EpidemicSimulation."""
         # Import here to avoid circular import
@@ -68,8 +63,7 @@ class EpidemicSimulationBuilder:
             recovery_days=self._recovery_days,
             initial_infected_percent=self._initial_infected_percent,
             mortality_rate=self._mortality_rate,
-            immunity_period=self._immunity_period,
-            interaction_distance=getattr(self, 'interaction_distance', 1)  # Default to 1 if not set
+            immunity_period=self._immunity_period
         )
     
     def _create_network(self):

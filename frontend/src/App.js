@@ -21,20 +21,58 @@ function App() {
     recovery_days: [7, 14],
     initial_infected_percent: 0.01,
     mortality_rate: 0.02,
-    immunity_period: 60,
-    interaction_distance: 1
+    immunity_period: 60
   });
 
   // Handle parameter changes
   const handleParamChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    let parsedValue;
+    
+    // Parse the value based on input type
+    if (type === 'number' || type === 'range') {
+      if (name === 'network_size') {
+        // Parse to integer and clamp between 1-1000
+        parsedValue = parseInt(value);
+        parsedValue = Math.max(100, Math.min(1000, parsedValue));
+      } 
+      else if (name === 'infection_probability') {
+        // Parse to float and clamp between 0.1-0.9
+        parsedValue = parseFloat(value);
+        parsedValue = Math.max(0.1, Math.min(0.9, parsedValue));
+      }
+      else if (name === 'social_distance_factor') {
+        // Parse to float and clamp between 0.5-2.0
+        parsedValue = parseFloat(value);
+        parsedValue = Math.max(0.5, Math.min(2.0, parsedValue));
+      }
+      else if (name === 'mortality_rate') {
+        // Parse to float and clamp between 0-1
+        parsedValue = parseFloat(value);
+        parsedValue = Math.max(0, Math.min(1, parsedValue));
+      }
+      else if (name === 'immunity_period') {
+        // Parse to integer and ensure minimum of 1
+        parsedValue = parseInt(value);
+        parsedValue = Math.max(1, parsedValue);
+      }
+      else if (name === 'initial_infected_percent') {
+        // Parse to float and clamp between 0.01-5
+        parsedValue = parseFloat(value);
+        parsedValue = Math.max(0.01, Math.min(5, parsedValue));
+      }
+      else {
+        // For other numeric values
+        parsedValue = type === 'number' ? parseFloat(value) : value;
+      }
+    } else {
+      // For non-numeric inputs
+      parsedValue = value;
+    }
+    
     setNetworkParams(prev => ({
       ...prev,
-      [name]: name === 'network_size' || name === 'network_connections' ? 
-        parseInt(value) : 
-        name === 'infection_probability' || name === 'initial_infected_percent' || name === 'mortality_rate' ? 
-        parseFloat(value) : 
-        value
+      [name]: parsedValue
     }));
   };
 

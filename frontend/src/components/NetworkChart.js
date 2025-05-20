@@ -169,7 +169,7 @@ function NetworkChart({ networkData, networkParams }) {
     
     // Set zoom distance to interaction distance (from API or default to 1)
     // You might need to store this in state when fetching simulation data
-    setZoomDistance(networkParams?.interaction_distance || 1);
+    setZoomDistance(1); // Fixed value of 1 for visualization purposes
   }, [adjacencyList, setFocusedNode, setViewMode, setZoomDistance, networkParams]);
 
   const getNodeColor = (state) => {
@@ -304,7 +304,7 @@ function NetworkChart({ networkData, networkParams }) {
           
           // Stronger repulsive force pushes nodes apart
           repulsiveForce: function(d, k) {
-            return k * k / Math.max(.1, d * 100);
+            return k / Math.max(100, d * 80);
           },
           
           // More balanced friction lets nodes move to proper positions
@@ -336,13 +336,11 @@ function NetworkChart({ networkData, networkParams }) {
             
             return {
               id: node.id !== undefined ? node.id.toString() : `node-${index}`,
-              state: node.state !== undefined ? node.state : 0,
+              nodeState: node.state !== undefined ? node.state : 0, // Changed from state to nodeState
               color: node.state === 0 ? 'blue' : 
                      node.state === 1 ? 'red' : 
                      node.state === 2 ? 'green' : 
                      node.state === 3 ? 'gray' : 'blue',
-              socialDistance: node.socialDistance !== undefined ? node.socialDistance : 1,
-              // Other properties you're already setting...
               marker: {
                 radius: 5
               }
@@ -364,15 +362,10 @@ function NetworkChart({ networkData, networkParams }) {
     tooltip: {
       enabled: true,
       formatter: function() {
-        // Enhanced tooltip with social distance info
+        // Enhanced tooltip with state info
         const node = this.point;
-        if (node.socialDistance) {
-          return `<b>Node ID:</b> ${node.id}<br>
-                  <b>State:</b> ${getStateName(node.state)}<br>
-                  <b>Social Distance:</b> ${node.socialDistance.toFixed(2)}`;
-        }
         return `<b>Node ID:</b> ${node.id}<br>
-                <b>State:</b> ${getStateName(node.state)}`;
+                <b>State:</b> ${getStateName(node.nodeState)}`;
       }
     }
   };
@@ -412,7 +405,7 @@ function NetworkChart({ networkData, networkParams }) {
             color: nodeData.state === 0 ? 'blue' : 
                    nodeData.state === 1 ? 'red' : 
                    nodeData.state === 2 ? 'green' : 'black',
-            state: nodeData.state,
+            nodeState: nodeData.state, // Changed from state to nodeState
             connections: nodeData.connections || 0,
             // Include these properties to avoid undefined errors
             selected: nodeData.selected || false,

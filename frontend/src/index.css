@@ -124,9 +124,28 @@ button.warning {
   font-weight: 500;
 }
 
-.param-group input[type="range"] {
-  width: 100%;
+.slider-with-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-top: 5px;
+}
+
+.numeric-input {
+  width: 70px;
+  padding: 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.param-group input[type="range"] {
+  flex: 1;
+  margin: 0;
+}
+
+.param-group span {
+  min-width: 60px;
+  text-align: right;
 }
 
 .value-display {

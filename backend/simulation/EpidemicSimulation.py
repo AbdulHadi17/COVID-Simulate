@@ -1,6 +1,6 @@
 import networkx as nx
 # Remove/comment out GUI-related imports
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import numpy as np
 import random
 import time
@@ -21,7 +21,7 @@ class EpidemicSimulation:
     
     def __init__(self, network, infection_probability, 
                  recovery_days, initial_infected_percent,
-                 mortality_rate, immunity_period, interaction_distance=1):
+                 mortality_rate, immunity_period):
         """
         Initialize the simulation with a social network and disease parameters.
         
@@ -39,8 +39,6 @@ class EpidemicSimulation:
             The probability that an infected individual will die.
         immunity_period : int, optional
             The number of days a recovered individual remains immune.
-        interaction_distance : int, optional
-            The distance within the network at which individuals can interact and potentially spread the infection.
         """
 
         self.network = network
@@ -49,7 +47,6 @@ class EpidemicSimulation:
         self.initial_infected_percent = initial_infected_percent
         self.mortality_rate = mortality_rate
         self.immunity_period = immunity_period
-        self.interaction_distance = interaction_distance  # Add this parameter
         
         # Node states: 0 = susceptible, 1 = infected, 2 = recovered, 3 = deceased
         self.node_states = {}
@@ -185,12 +182,12 @@ class EpidemicSimulation:
                         
                         # Calculate adjusted infection probability
                         # Higher social distance = lower probability
-                        adjusted_prob = self.infection_probability / (social_distance * social_distance)
+                        adjusted_prob = ( self.infection_probability / (social_distance * social_distance) ) * .5
                         
                         # Attempt infection with adjusted probability
                         if random.random() < adjusted_prob:
                             new_infections.append(neighbor)
-    
+
         # Update states for newly infected nodes
         for node in new_infections:
             if self.node_states.get(node, 0) == 0:  # Only if still susceptible
